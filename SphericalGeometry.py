@@ -93,6 +93,7 @@ class SphericalPolygon:
 
     def plot_boundary(self, ax, N=100, *args, **kwargs):
         interp = self.interpolate_edges(N)
-        proj = ax.projection
-        map_coords = vec2mapcoords(interp, to_crs=proj)
-        return ax.plot(map_coords[:,0], map_coords[:,1], *args, **kwargs)
+        proj = ax.projection # map coordinates, whatever they may be.
+        geodetic_proj = proj.as_geodetic() # latitude, longitude with spherical topology
+        geodetic_coords = vec2mapcoords(interp, to_crs=geodetic_proj) # Convert geocentric vectors to geodetic coords (lon, lat, height).
+        ax.plot(geodetic_coords[:,0], geodetic_coords[:,1], transform=geodetic_proj) # plot with the transform that converts from geodetic to map coords
