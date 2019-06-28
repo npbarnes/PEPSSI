@@ -97,3 +97,17 @@ class SphericalPolygon:
         geodetic_proj = proj.as_geodetic() # latitude, longitude with spherical topology
         geodetic_coords = vec2mapcoords(interp, to_crs=geodetic_proj) # Convert geocentric vectors to geodetic coords (lon, lat, height).
         ax.plot(geodetic_coords[:,0], geodetic_coords[:,1], transform=geodetic_proj) # plot with the transform that converts from geodetic to map coords
+
+    def _angle(self,A,B, X=None):
+        """Compute the angle AXB, where X is self.inside by default.
+
+        To get the angle between great circles think of them as planes
+        intersecting a sphere (and the orgin). The angle between the great
+        circles is the same as the angle between the planes. In turn, the
+        angle between the planes is the same as the angle between their
+        normal vectors. That's how this computation is done.
+        """
+        X = X or self.inside
+        N1 = np.cross(A,X)
+        N2 = np.cross(X,B)
+        return N1.dot(N2)
