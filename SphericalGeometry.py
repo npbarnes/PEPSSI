@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.interpolate import interp1d
 import cartopy.crs as ccrs
+import itertools
 
 unit_sphere = ccrs.Globe(semimajor_axis=1., semiminor_axis=1., ellipse=None)
 
@@ -19,10 +20,11 @@ def vec2mapcoords(v, to_crs=None, from_crs=None):
 class SphericalPolygon:
     """A polygon on a sphere and some related functions.
     Assumptions:
-        1. vertices are listed in order so that there is an edge between v[n] and v[n+1].
-        2. no edges cover exactly pi radians. i.e. vertices connected by an edge are not antipodal.
-        3. edges are always defined to be the shorter arc between vertices (less than pi radians).
-        4. the polygon is not self intersecting.
+        1. Vertices are listed in order so that there is an edge between v[n] and v[n+1] and from v[-1] to v[0].
+        2. No edges cover exactly pi radians. i.e. vertices connected by an edge are not antipodal.
+        3. Edges are always defined to be the shorter arc between vertices (less than pi radians).
+        4. The polygon is simply connected and not self intersecting.
+        5. The given interior point is not on an edge and not antipodal to any vertex.
     Of course, if you would like your polygon to have an edge equal to or longer than pi radians
     just use an extra vertex to make it into two edges on the same great circle.
     """
@@ -33,29 +35,20 @@ class SphericalPolygon:
         assert inside.ndim == 1
         assert inside.shape[0] == 3
 
-        assert np.allclose(np.linalg.norm(vertices, axis=-1), 1.0)
-
-        # self.vertices should be 'cyclic' in the sense that the last vertex is the
-        # same as the first vertex. This closes the polygon.
-        if np.allclose(vertices[0], vertices[-1]):
-            self.vertices = vertices
-        else:
-            self.vertices = np.empty((vertices.shape[0]+1, 3))
-            self.vertices[:-1,:] = vertices
-            self.vertices[-1,:] = vertices[0,:]
-
+        self.vertices = vertices/np.linalg.norm(vertices, axis=-1, keepdims=True)
         self.inside = inside/np.linalg.norm(inside)
 
     @property
     def edges(self):
-        return zip(self.vertices[:-1], self.vertices[1:])
+        most = zip(self.vertices[:-1], self.vertices[1:])
+        return itertools.chain(most, ((self.vertices[-1], self.vertices[0]),))
 
     @property
     def num_edges(self):
         """Normally in polygons the number of edges is equal to the number of vertices, but
         here the first and last vertex are the same, so we subtract 1 to prevent double counting
         """
-        return len(self.vertices) - 1
+        return len(self.vertices)
 
     def contains_point(self, P):
         """Checks if the point P is in the polygon. Each edge splits the sphere into two halfs,
