@@ -44,9 +44,6 @@ class SphericalPolygon:
 
     @property
     def num_edges(self):
-        """Normally in polygons the number of edges is equal to the number of vertices, but
-        here the first and last vertex are the same, so we subtract 1 to prevent double counting
-        """
         return len(self.vertices)
 
     def contains_point(self, P):
