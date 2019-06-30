@@ -124,16 +124,17 @@ class SphericalPolygon:
             geodetic_vertices = vec2mapcoords(self.vertices, to_crs=geodetic_proj)
             ax.scatter(geodetic_vertices[:,0], geodetic_vertices[:,1], transform=geodetic_proj)
 
-    def _angle(self,A,B, X=None):
-        """Compute the angle AXB, where X is self.inside by default.
+    def _angle(self,A,B,C):
+        """Compute the angle ABC.
 
-        To get the angle between great circles think of them as planes
-        intersecting a sphere (and the orgin). The angle between the great
-        circles is the same as the angle between the planes. In turn, the
-        angle between the planes is the same as the angle between their
-        normal vectors. That's how this computation is done.
+        This formula follows from a standard result in spherical trigonometry.
         """
-        X = X or self.inside
-        N1 = np.cross(A,X)
-        N2 = np.cross(X,B)
-        return N1.dot(N2)
+        cb = A.dot(C)
+        cc = B.dot(A)
+        ca = C.dot(B)
+
+        sc = np.linalg.norm(np.cross(A,B))
+        sa = np.linalg.norm(np.cross(B,C))
+
+        return np.arccos((cb - cc*ca)/(sc*sa))
+
