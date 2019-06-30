@@ -46,26 +46,53 @@ class SphericalPolygon:
     def num_edges(self):
         return len(self.vertices)
 
-    def contains_point(self, P):
-        """Checks if the point P is in the polygon. Each edge splits the sphere into two halfs,
-        we check that P is on the same half as X for each edge. Points on the edge are defined
-        as being inside.
+    def _intersections(self, A):
+        """Get all the intersection points between the arcs A-self.inside
+        and the edges of the polygon.
+
+        I don't really understand how this algorithm works, I copied it from
+        the spherical_geometry astropy project, and the link to their citation
+        was broken :(
+
+        We're not even using the intersection locations as of this writing, only
+        counting how many interections there are.
         """
-        X = self.inside
-        P = P/np.linalg.norm(P, axis=-1, keepdims=True)
-        ret = np.ones(P.shape[0], dtype=bool)
-        for A,B in self.edges:
-            # Find a normal to the plane defined by AB that is on the same
-            # half of the sphere that the inside is on.
-            normal = np.cross(A,B)
-            if normal.dot(X) < 0:
-                normal = -normal
+        ret = np.empty((A.shape[0], self.num_edges,3), dtype='d')
+        for i,(C,D) in enumerate(self.edges):
+            ABX = np.cross(A, self.inside)
+            CDX = np.cross(C, D)
+            T = np.cross(ABX, CDX)
+            T = T/np.linalg.norm(T, axis=-1, keepdims=True)
 
-            # If the normal makes an acute angle with P, then P must be on the same half
-            # of the sphere.
-            ret = np.logical_and(ret, np.inner(normal, P) >= 0, out=ret)
+            s = np.zeros(T.shape[0])
+            s += np.sign(np.einsum('ij,ij->i',np.cross(ABX, A), T))
+            s += np.sign(np.einsum('ij,ij->i',np.cross(self.inside, ABX), T))
+            s += np.sign(np.einsum('j,ij->i',np.cross(CDX, C), T))
+            s += np.sign(np.einsum('j,ij->i',np.cross(D, CDX), T))
+            s = np.expand_dims(s, 1)
 
+            cross = np.where(s == -4, -T, np.where(s == 4, T, np.nan))
+
+            # If they share a common point, it's not an intersection.  This
+            # gets around some rounding-error/numerical problems with the
+            # above.
+            equals = (np.all(A == C, axis=-1) |
+                    np.all(A == D, axis=-1) |
+                    np.all(self.inside == C, axis=-1) |
+                    np.all(self.inside == D, axis=-1))
+
+            equals = np.expand_dims(equals, 2)
+
+            ret[:,i,:] = np.where(equals, np.nan, cross)
         return ret
+
+    def _count_intersections(self, A):
+        I = self._intersections(A)
+        return np.count_nonzero(~np.isnan(I[:,:,0]), axis=1)
+
+    def contains_point(self,P):
+        c = self._count_intersections(P)
+        return np.mod(c, 2) == 0
 
     def interpolate_edges(self, N=100):
         """Interpolate all edges with N+1 points on each edge (including corners).
