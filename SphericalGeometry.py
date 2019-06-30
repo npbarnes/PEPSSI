@@ -23,9 +23,12 @@ class SphericalPolygon:
         2. No edges cover exactly pi radians. i.e. vertices connected by an edge are not antipodal.
         3. Edges are always defined to be the shorter arc between vertices (less than pi radians).
         4. The polygon is simply connected and not self intersecting.
-        5. The given interior point is not on an edge and not antipodal to any vertex.
+        5. The given interior point is not on an edge.
     Of course, if you would like your polygon to have an edge equal to or longer than pi radians
     just use an extra vertex to make it into two edges on the same great circle.
+
+    There is a 6th assumption that only applies to computing the area of the polygon.
+        *6. The polygon has no reentrant vertices (i.e. all interior angles <= pi radians).
     """
 
     def __init__(self, vertices, inside):
@@ -137,4 +140,20 @@ class SphericalPolygon:
         sa = np.linalg.norm(np.cross(B,C))
 
         return np.arccos((cb - cc*ca)/(sc*sa))
+
+    @property
+    def _corners(self):
+        for i in range(self.num_edges):
+            yield (
+                self.vertices[(i-1) % self.num_edges],
+                self.vertices[i],
+                self.vertices[(i+1) % self.num_edges]
+            )
+
+    def area(self):
+        s = 0
+        for c in self._corners:
+            a = self._angle(*c)
+            s += a
+        return s - np.pi*(self.num_edges - 2)
 
