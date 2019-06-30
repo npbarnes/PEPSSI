@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.interpolate import interp1d
 import cartopy.crs as ccrs
-import itertools
 
 unit_sphere = ccrs.Globe(semimajor_axis=1., semiminor_axis=1., ellipse=None)
 
@@ -40,8 +39,8 @@ class SphericalPolygon:
 
     @property
     def edges(self):
-        most = zip(self.vertices[:-1], self.vertices[1:])
-        return itertools.chain(most, ((self.vertices[-1], self.vertices[0]),))
+        for i in range(self.num_edges):
+            yield (self.vertices[i], self.vertices[(i+1) % self.num_edges])
 
     @property
     def num_edges(self):
