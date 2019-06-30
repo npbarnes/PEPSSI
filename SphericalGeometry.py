@@ -114,12 +114,15 @@ class SphericalPolygon:
         ret = interpolator(t)
         return ret/np.linalg.norm(ret, axis=-1, keepdims=True)
 
-    def plot_boundary(self, ax, N=100, *args, **kwargs):
+    def plot_boundary(self, ax, N=100, vertices=False, *args, **kwargs):
         interp = self.interpolate_edges(N)
         proj = ax.projection # map coordinates, whatever they may be.
         geodetic_proj = proj.as_geodetic() # latitude, longitude with spherical topology
         geodetic_coords = vec2mapcoords(interp, to_crs=geodetic_proj) # Convert geocentric vectors to geodetic coords (lon, lat, height).
         ax.plot(geodetic_coords[:,0], geodetic_coords[:,1], transform=geodetic_proj) # plot with the transform that converts from geodetic to map coords
+        if vertices:
+            geodetic_vertices = vec2mapcoords(self.vertices, to_crs=geodetic_proj)
+            ax.scatter(geodetic_vertices[:,0], geodetic_vertices[:,1], transform=geodetic_proj)
 
     def _angle(self,A,B, X=None):
         """Compute the angle AXB, where X is self.inside by default.
