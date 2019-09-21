@@ -4,6 +4,13 @@ import cartopy.crs as ccrs
 
 unit_sphere = ccrs.Globe(semimajor_axis=1., semiminor_axis=1., ellipse=None)
 
+def plot_map(ax, plotter, vectors, *args, **kwargs):
+    if isinstance(plotter,str):
+        plotter = getattr(ax,plotter)
+    geodetic_proj = ax.projection.as_geodetic()
+    geodetic = vec2mapcoords(vectors, to_crs=geodetic_proj)
+    return plotter(geodetic[:,0], geodetic[:,1], *args, transform=geodetic_proj, **kwargs)
+
 def vec2mapcoords(v, to_crs=None, from_crs=None):
     """Converts radial vectors v into longitude, latitude, altitude triples.
     Any cartopy CRSs may be used, but the defaults are
@@ -117,15 +124,12 @@ class SphericalPolygon:
         ret = interpolator(t)
         return ret/np.linalg.norm(ret, axis=-1, keepdims=True)
 
-    def plot_boundary(self, ax, N=100, vertices=False, *args, **kwargs):
+    def plot_boundary(self, ax, N=100, *args, **kwargs):
         interp = self.interpolate_edges(N)
-        proj = ax.projection # map coordinates, whatever they may be.
-        geodetic_proj = proj.as_geodetic() # latitude, longitude with spherical topology
-        geodetic_coords = vec2mapcoords(interp, to_crs=geodetic_proj) # Convert geocentric vectors to geodetic coords (lon, lat, height).
-        ax.plot(geodetic_coords[:,0], geodetic_coords[:,1], transform=geodetic_proj) # plot with the transform that converts from geodetic to map coords
-        if vertices:
-            geodetic_vertices = vec2mapcoords(self.vertices, to_crs=geodetic_proj)
-            ax.scatter(geodetic_vertices[:,0], geodetic_vertices[:,1], transform=geodetic_proj)
+        plot_map(ax, ax.plot, interp, *args, **kwargs)
+
+    def plot_vertices(self, ax, *args, **kwargs):
+        plot_map(ax, ax.scatter, self.vertices, *args, **kwargs)
 
     def _angle(self,A,B,C):
         """Compute the angle ABC.
@@ -151,9 +155,21 @@ class SphericalPolygon:
             )
 
     def area(self):
-        s = 0
-        for c in self._corners:
-            a = self._angle(*c)
-            s += a
+        """Computes the area of the polygon under the assumption that it is
+        a convex polygon! See assumption 6 above. If you use this routine
+        with a concave polygon it will return meaningless results.
+        """
+        s = sum(self._angle(*c) for c in self.corners)
         return s - np.pi*(self.num_edges - 2)
 
+if __name__ == '__main__':
+    A = np.array([1.,0.,0.])
+    B = np.array([0.,1.,0.])
+    C = np.array([0.,0.,1.])
+    D = np.array([0.,-1.,0.])
+    X = np.array([1.,1.,1.])
+
+    p = SphericalPolygon(np.array([A,B,C,D]), X)
+    print('vertices:')
+    print(p.vertices)
+    print('Area fraction:', p.area()/(4*np.pi))
