@@ -36,11 +36,11 @@ def load_and_plot(name):
 def compute_and_save(name):
     times, responses, bins = inst.spectrogram_by_subpop(
         "/home/nathan/data/chinook/pluto-1/data",
-        "NH_PEPSSI_S0",
+        "NH_SWAP",
         inst.flux_density_per_keV,
-        3000.,
-        st.last_sw, st.plutopause_out, step=60.,
-        E_bins=np.geomspace(1000., 20000., 30)
+        dx=3000.,
+        start_et=st.flyby_start, stop_et=st.flyby_end, step=60.,
+        E_bins=np.geomspace(20., 20000., 60)
     )
 
     np.savez(name, times=times, responses=responses, bins=bins)
@@ -48,3 +48,4 @@ def compute_and_save(name):
 
 if __name__ == '__main__':
     load_and_plot('spectrogram.npz')
+    #compute_and_save('spectrogram.npz')
