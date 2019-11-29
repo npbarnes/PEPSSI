@@ -159,7 +159,7 @@ class SphericalPolygon:
         a convex polygon! See assumption 6 above. If you use this routine
         with a concave polygon it will return meaningless results.
         """
-        s = sum(self._angle(*c) for c in self.corners)
+        s = sum(self._angle(*c) for c in self._corners)
         return s - np.pi*(self.num_edges - 2)
 
 if __name__ == '__main__':
