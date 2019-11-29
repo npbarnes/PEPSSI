@@ -28,7 +28,6 @@ def load_and_plot(name):
 
     plt.figure()
     n = 23
-    print bins[0,0,n]
     plt.plot(times, total_resps[:,n])
     plt.gca().xaxis.set_major_formatter(hours_fmt)
 
@@ -48,5 +47,4 @@ def compute_and_save(name):
 
 
 if __name__ == '__main__':
-    print st.et2pydatetime(st.last_sw)
     load_and_plot('spectrogram.npz')
